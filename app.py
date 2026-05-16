@@ -160,12 +160,16 @@ class CarBookingApp(ctk.CTk):
         from ui.pages.home_page import HomePage
         from ui.pages.my_bookings_page import MyBookingsPage
         from ui.pages.placeholder_page import PlaceholderPage
+        from ui.pages.car_details_page import CarDetailsPage
 
         user = Session.get_current_user()
         is_admin = user and user.get("role") == "admin" if user else False
 
         # Dashboard page (available to all)
         self.pages["dashboard"] = HomePage(self.content_frame, self)
+
+        # Car details page (available to all roles)
+        self.pages["car_details"] = CarDetailsPage(self.content_frame, self)
 
         if is_admin:
             # Admin pages

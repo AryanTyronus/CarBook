@@ -4,6 +4,7 @@ import customtkinter as ctk
 from typing import Callable, Dict, List
 
 from theme.colors import *
+from theme.typography import font_heading_sm, font_body_secondary, font_button
 
 
 class Sidebar(ctk.CTkFrame):
@@ -27,13 +28,14 @@ class Sidebar(ctk.CTkFrame):
         self.on_select = on_select
         self.buttons: Dict[str, ctk.CTkButton] = {}
         self.active_item = None
-        # More elegant, refined icons
+        # More elegant, minimal modern icons (premium Unicode glyphs)
+        # Kept as text to avoid redesigning sidebar/layout or adding icon dependencies.
         self.icons = {
-            "dashboard": "◇",
-            "browse_cars": "◈",
-            "my_bookings": "◷",
-            "profile": "◉",
-            "logout": "↗",
+            "dashboard": "▦",      # dashboard grid
+            "browse_cars": "⟐",   # refined diamond/point
+            "my_bookings": "⌚",   # time/booking hint
+            "profile": "◍",       # premium ring/dot
+            "logout": "↪",        # modern logout/exit arrow
         }
 
         # Prevent the sidebar from resizing to fit its children.
@@ -53,7 +55,7 @@ class Sidebar(ctk.CTkFrame):
         title_label = ctk.CTkLabel(
             brand_frame,
             text="LUXURYDRIVE",
-            font=ctk.CTkFont(size=18, weight="bold", family="Helvetica"),
+            font=font_heading_sm(bold=True, size=17),
             text_color=PRIMARY  # Gold accent
         )
         title_label.pack(anchor="w")
@@ -61,7 +63,7 @@ class Sidebar(ctk.CTkFrame):
         subtitle_label = ctk.CTkLabel(
             brand_frame,
             text="Premium Collection",
-            font=ctk.CTkFont(size=11, family="Helvetica"),
+            font=font_body_secondary(size=12),
             text_color=TEXT_MUTED
         )
         subtitle_label.pack(anchor="w", pady=(2, 0))
@@ -85,7 +87,7 @@ class Sidebar(ctk.CTkFrame):
             anchor="w",
             height=46,
             corner_radius=6,
-            font=ctk.CTkFont(size=13, family="Helvetica"),
+            font=font_button(size=12),
             command=lambda: self._on_item_click(item)
         )
         pady = (24, 2) if item["id"] == "logout" else 2

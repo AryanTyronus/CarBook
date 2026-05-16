@@ -6,6 +6,7 @@ from services.car_service import CarService
 from ui.pages.base_page import BasePage
 from utils.auth import Session
 from theme.colors import *
+from theme.typography import font_heading_lg, font_body_secondary, font_heading_md, font_label
 
 
 class HomePage(BasePage):
@@ -48,7 +49,7 @@ class HomePage(BasePage):
         self.welcome_label = ctk.CTkLabel(
             welcome_frame,
             text=f"Welcome back, {user_name}!",
-            font=ctk.CTkFont(size=28, weight="bold", family="Helvetica"),
+            font=font_heading_lg(bold=True),
             text_color=TEXT_PRIMARY
         )
         self.welcome_label.grid(row=0, column=0, sticky="w")
@@ -57,17 +58,20 @@ class HomePage(BasePage):
         subtitle_label = ctk.CTkLabel(
             welcome_frame,
             text="Your luxury driving experience awaits",
-            font=ctk.CTkFont(size=14, family="Helvetica"),
+            font=font_body_secondary(size=14),
             text_color=TEXT_SECONDARY
         )
         self.subtitle_label = subtitle_label
-        self.subtitle_label.grid(row=1, column=0, sticky="w", pady=(6, 0))
+        # Slightly more breathing room above to feel more premium
+        self.subtitle_label.grid(row=1, column=0, sticky="w", pady=(8, 0))
 
     def _create_stats_section(self):
         """Create statistics cards section."""
         stats_container = ctk.CTkFrame(self, fg_color="transparent")
-        stats_container.grid(row=1, column=0, sticky="ew", padx=PAGE_PAD_X, pady=18)
+        # More even vertical rhythm and card balance across the row
+        stats_container.grid(row=1, column=0, sticky="ew", padx=PAGE_PAD_X, pady=(10, 18))
         for column in range(3):
+            # Ensure all 3 cards share available width consistently
             stats_container.grid_columnconfigure(column, weight=1, uniform="stats")
 
         stats = self._get_stats()
@@ -85,39 +89,62 @@ class HomePage(BasePage):
             border_color=BORDER,
             border_width=1
         )
-        card.grid(row=0, column=column, sticky="nsew", padx=(0, 14) if column < 2 else 0)
+        # Balanced horizontal padding across all 3 cards (not just first two)
+        card.grid(row=0, column=column, sticky="nsew", padx=10)
         card.grid_columnconfigure(0, weight=1)
 
-        # Icon with luxury accent background
-        icon_frame = ctk.CTkFrame(card, fg_color=PRIMARY, corner_radius=6, width=40, height=40)
-        icon_frame.grid(row=0, column=0, sticky="w", padx=20, pady=(18, 6))
+        # Give the card a clean internal layout height distribution
+        card.grid_rowconfigure(0, weight=0)
+        card.grid_rowconfigure(1, weight=0)
+        card.grid_rowconfigure(2, weight=0)
+
+        # Icon with luxury accent background (badge)
+        icon_outer = ctk.CTkFrame(
+            card,
+            fg_color="transparent",
+            corner_radius=8,
+            width=48,
+            height=48
+        )
+        icon_outer.grid(row=0, column=0, sticky="w", padx=18, pady=(18, 8))
+        icon_outer.grid_propagate(False)
+
+        icon_frame = ctk.CTkFrame(
+            icon_outer,
+            fg_color=PRIMARY,
+            corner_radius=7,
+            width=40,
+            height=40
+        )
+        icon_frame.place(relx=0.5, rely=0.5, anchor="center")
         icon_frame.grid_propagate(False)
 
         icon_label = ctk.CTkLabel(
             icon_frame,
             text=stat["icon"],
-            font=ctk.CTkFont(size=16),
+            font=ctk.CTkFont(size=17, weight="bold"),
             text_color=BG_DARK
         )
         icon_label.place(relx=0.5, rely=0.5, anchor="center")
 
-        # Value
+        # Value (more premium emphasis via value font helper)
         value_label = ctk.CTkLabel(
             card,
             text=stat["value"],
             font=ctk.CTkFont(size=26, weight="bold", family="Helvetica"),
             text_color=TEXT_PRIMARY
         )
-        value_label.grid(row=1, column=0, sticky="w", padx=20, pady=(12, 0))
+        value_label.grid(row=1, column=0, sticky="w", padx=20, pady=(2, 0))
 
-        # Title
+        # Title with clearer visual hierarchy
         title_label = ctk.CTkLabel(
             card,
             text=stat["title"],
             font=ctk.CTkFont(size=12, family="Helvetica"),
             text_color=TEXT_SECONDARY
         )
-        title_label.grid(row=2, column=0, sticky="w", padx=20, pady=(4, 18))
+        title_label.grid(row=2, column=0, sticky="w", padx=20, pady=(6, 20))
+
         self.stat_cards.append({
             "icon": icon_label,
             "value": value_label,
@@ -138,7 +165,7 @@ class HomePage(BasePage):
         title_label = ctk.CTkLabel(
             header_frame,
             text="Featured Vehicles",
-            font=ctk.CTkFont(size=20, weight="bold", family="Helvetica"),
+            font=font_heading_md(bold=True),
             text_color=TEXT_PRIMARY
         )
         title_label.grid(row=0, column=0, sticky="w")
@@ -199,7 +226,7 @@ class HomePage(BasePage):
         name_label = ctk.CTkLabel(
             card,
             text=f"{car['brand']} {car['model']}",
-            font=ctk.CTkFont(size=14, weight="bold", family="Helvetica"),
+            font=font_label(size=15, bold=True),
             text_color=TEXT_PRIMARY
         )
         name_label.grid(row=1, column=0, sticky="w", padx=16)
@@ -216,33 +243,59 @@ class HomePage(BasePage):
     def _get_stats(self):
         """Return dashboard cards tailored by role."""
         user_id = Session.get_user_id()
+        # Premium minimal icon glyphs (single char per card, luxury dark + gold aesthetic)
+        # Note: This keeps the existing “icon as text label” mechanism intact.
+        admin_icons = {
+            "Luxury Fleet": "⧉",          # structured grid
+            "Available": "⟡",            # diamond/check-like minimal
+            "Active Bookings": "⟲",     # loop/active pulse
+        }
+
+        user_icons = {
+            "Total Bookings": "⟲",
+            "Active Rentals": "⟡",
+            "Available Cars": "⧉",
+        }
+
+        def _count(query: str, params: tuple = ()) -> int:
+            row = db.fetch_one(query, params) if params else db.fetch_one(query)
+            return int(row["count"]) if row else 0
+
         if Session.is_admin():
-            total_cars = db.fetch_one("SELECT COUNT(*) AS count FROM cars")["count"]
-            available = db.fetch_one("SELECT COUNT(*) AS count FROM cars WHERE status = %s", ("available",))["count"]
-            active = db.fetch_one(
+            total_cars = _count("SELECT COUNT(*) AS count FROM cars")
+            available = _count("SELECT COUNT(*) AS count FROM cars WHERE status = %s", ("available",))
+            active = _count(
                 "SELECT COUNT(*) AS count FROM bookings WHERE status IN (%s, %s, %s)",
-                ("pending", "confirmed", "active")
-            )["count"]
+                ("pending", "confirmed", "active"),
+            )
             return [
-                {"title": "Luxury Fleet", "value": str(total_cars), "icon": "▦"},
-                {"title": "Available", "value": str(available), "icon": "✓"},
-                {"title": "Active Bookings", "value": str(active), "icon": "◷"},
+                {"title": "Luxury Fleet", "value": str(total_cars), "icon": admin_icons["Luxury Fleet"]},
+                {"title": "Available", "value": str(available), "icon": admin_icons["Available"]},
+                {"title": "Active Bookings", "value": str(active), "icon": admin_icons["Active Bookings"]},
             ]
 
-        total = db.fetch_one("SELECT COUNT(*) AS count FROM bookings WHERE user_id = %s", (user_id,))["count"] if user_id else 0
-        active = db.fetch_one(
+        total = _count(
+            "SELECT COUNT(*) AS count FROM bookings WHERE user_id = %s",
+            (user_id,),
+        ) if user_id else 0
+
+        active = _count(
             "SELECT COUNT(*) AS count FROM bookings WHERE user_id = %s AND status IN (%s, %s, %s)",
-            (user_id, "pending", "confirmed", "active")
-        )["count"] if user_id else 0
-        available = db.fetch_one("SELECT COUNT(*) AS count FROM cars WHERE status = %s", ("available",))["count"]
+            (user_id, "pending", "confirmed", "active"),
+        ) if user_id else 0
+
+        available = _count("SELECT COUNT(*) AS count FROM cars WHERE status = %s", ("available",))
         return [
-            {"title": "Total Bookings", "value": str(total), "icon": "◷"},
-            {"title": "Active Rentals", "value": str(active), "icon": "◈"},
-            {"title": "Available Cars", "value": str(available), "icon": "▦"},
+            {"title": "Total Bookings", "value": str(total), "icon": user_icons["Total Bookings"]},
+            {"title": "Active Rentals", "value": str(active), "icon": user_icons["Active Rentals"]},
+            {"title": "Available Cars", "value": str(available), "icon": user_icons["Available Cars"]},
         ]
 
     def _render_featured_cars(self):
         """Render the top luxury cars from MySQL."""
+        if not self.cars_container:
+            return
+
         for widget in self.cars_container.winfo_children():
             widget.destroy()
 

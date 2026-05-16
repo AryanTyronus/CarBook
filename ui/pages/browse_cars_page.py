@@ -16,6 +16,7 @@ from services.car_service import CarService
 from services.booking_service import BookingService
 from ui.pages.base_page import BasePage
 from theme.colors import *
+from theme.typography import font_heading_lg, font_label, font_body_secondary
 from utils.auth import Session
 
 
@@ -50,7 +51,7 @@ class BrowseCarsPage(BasePage):
         title = ctk.CTkLabel(
             header,
             text="Manage Cars" if self.is_admin else "Browse Cars",
-            font=ctk.CTkFont(size=28, weight="bold", family="Helvetica"),
+            font=font_heading_lg(bold=True),
             text_color=TEXT_PRIMARY
         )
         title.grid(row=0, column=0, sticky="w")
@@ -196,13 +197,26 @@ class BrowseCarsPage(BasePage):
         card.grid(row=row, column=column, sticky="nsew", padx=8, pady=10)
         card.grid_columnconfigure(0, weight=1)
 
+        def _open_details(selected=car):
+            details_page = self.app.pages.get("car_details")
+            if details_page:
+                details_page.set_car(selected)
+                self.app.show_page("car_details")
+
+        # Clicking card body should open Car Details (no full-area overlay button)
+        def _card_click(_event, selected=car):
+            _open_details(selected)
+            return "break"
+
+        card.bind("<Button-1>", _card_click)
+
         image_widget = self._build_image_widget(card, car.get("image_url"))
         image_widget.grid(row=0, column=0, sticky="ew", padx=16, pady=(18, 12))
 
         name = ctk.CTkLabel(
             card,
             text=f"{car['brand']} {car['model']}",
-            font=ctk.CTkFont(size=16, weight="bold", family="Helvetica"),
+            font=font_label(size=15, bold=True),
             text_color=TEXT_PRIMARY
         )
         name.grid(row=1, column=0, sticky="w", padx=18, pady=(8, 0))
@@ -223,19 +237,28 @@ class BrowseCarsPage(BasePage):
         )
         plate.grid(row=3, column=0, sticky="w", padx=18, pady=(8, 0))
 
-        status = ctk.CTkLabel(
+        # Premium status chip (subtle, modern)
+        status_bg = self._status_bg(car["status"])
+        status = ctk.CTkFrame(
             card,
-            text=car["status"].title(),
-            font=ctk.CTkFont(size=12, weight="bold", family="Helvetica"),
-            text_color=self._status_color(car["status"])
+            fg_color=status_bg,
+            corner_radius=999,
+            border_color=BORDER_LIGHT,
+            border_width=1
         )
         status.grid(row=4, column=0, sticky="w", padx=18, pady=(12, 12))
+
+        status_label = ctk.CTkLabel(
+            status,
+            text=car["status"].replace("_", " ").title(),
+            font=ctk.CTkFont(size=11, weight="bold", family="Helvetica"),
+            text_color=self._status_color(car["status"])
+        )
+        status_label.pack(padx=14, pady=6)
 
         actions = ctk.CTkFrame(card, fg_color="transparent")
         actions.grid(row=5, column=0, sticky="ew", padx=16, pady=(4, 18))
 
-        # Preserve existing design while improving customer vertical balance:
-        # keep the actions area from collapsing when only the single "Book" button is shown.
         if not self.is_admin:
             actions.grid_propagate(False)
             actions.grid_rowconfigure(0, minsize=32)
@@ -254,16 +277,19 @@ class BrowseCarsPage(BasePage):
                 command=lambda selected=car: self._open_booking_dialog(selected)
             )
             book_button.grid(row=0, column=0, sticky="ew")
+
+            # Prevent card click handler from also navigating when pressing the button
+            book_button.bind("<Button-1>", lambda _e: "break")
         else:
-            # For admins: show book, edit, and delete buttons
             actions.grid_columnconfigure((0, 1, 2), weight=1)
+
             book_button = ctk.CTkButton(
                 actions,
                 text="Book",
                 height=32,
                 fg_color=PRIMARY,
                 hover_color=PRIMARY_HOVER,
-                text_color=BG_DARK,  # Dark text on gold
+                text_color=BG_DARK,
                 font=ctk.CTkFont(size=11, weight="bold", family="Helvetica"),
                 corner_radius=6,
                 state="normal" if car["status"] in ("available", "rented") else "disabled",
@@ -299,6 +325,10 @@ class BrowseCarsPage(BasePage):
             )
             delete_button.grid(row=0, column=2, sticky="ew", padx=(6, 0))
 
+            book_button.bind("<Button-1>", lambda _e: "break")
+            edit_button.bind("<Button-1>", lambda _e: "break")
+            delete_button.bind("<Button-1>", lambda _e: "break")
+
     def _build_image_widget(self, parent, image_path: Optional[str]):
         """Build an image preview or fallback placeholder."""
         if Image and image_path and Path(image_path).exists():
@@ -312,7 +342,7 @@ class BrowseCarsPage(BasePage):
 
         # Placeholder: fixed height maintained via grid_propagate(False)
         placeholder = ctk.CTkFrame(parent, fg_color=BG_LIGHT, corner_radius=8, height=165)
-        placeholder.grid_propagate(False)   # keep the 165 px height
+        placeholder.grid_propagate(False)
         placeholder.grid_columnconfigure(0, weight=1)
         placeholder.grid_rowconfigure(0, weight=1)
 
@@ -322,7 +352,7 @@ class BrowseCarsPage(BasePage):
             font=ctk.CTkFont(size=28),
             text_color=BORDER_LIGHT
         )
-        icon.grid(row=0, column=0)   # grid inside grid-managed parent — no mixing
+        icon.grid(row=0, column=0)
 
         return placeholder
 
@@ -423,6 +453,15 @@ class BrowseCarsPage(BasePage):
             "maintenance": ACCENT_WARNING,
             "unavailable": ACCENT_ERROR,
         }.get(status, TEXT_SECONDARY)
+
+    @staticmethod
+    def _status_bg(status: str) -> str:
+        return {
+            "available": "#12301E",
+            "rented": "#241F0A",
+            "maintenance": "#2D2300",
+            "unavailable": "#2A0D0D",
+        }.get(status, BG_LIGHT)
 
 
 class CarForm(ctk.CTkScrollableFrame):
@@ -534,7 +573,7 @@ class CarForm(ctk.CTkScrollableFrame):
             height=38,
             fg_color=PRIMARY,
             hover_color=PRIMARY_HOVER,
-            text_color=BG_DARK,  # Dark text on gold
+            text_color=BG_DARK,
             font=ctk.CTkFont(size=12, weight="bold", family="Helvetica"),
             corner_radius=CARD_RADIUS,
             command=self._save
@@ -714,7 +753,7 @@ class BookingForm(ctk.CTkFrame):
             height=38,
             fg_color=PRIMARY,
             hover_color=PRIMARY_HOVER,
-            text_color=BG_DARK,  # Dark text on gold
+            text_color=BG_DARK,
             font=ctk.CTkFont(size=12, weight="bold", family="Helvetica"),
             corner_radius=CARD_RADIUS,
             command=self._confirm

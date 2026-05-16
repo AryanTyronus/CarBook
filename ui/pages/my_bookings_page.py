@@ -96,7 +96,8 @@ class MyBookingsPage(BasePage):
 
     def refresh(self):
         """Reload bookings."""
-        self.bookings = BookingService.get_user_bookings(Session.get_user_id())
+        user_id = Session.get_user_id()
+        self.bookings = BookingService.get_user_bookings(user_id) if user_id is not None else []
         self._render_bookings()
 
     def _set_filter(self, filter_id: str):
@@ -227,21 +228,23 @@ class MyBookingsPage(BasePage):
         )
         price.grid(row=2, column=0, sticky="w", pady=(8, 0))
 
-        # Right side — status badge
+        # Right side — premium status chip
         status_frame = ctk.CTkFrame(
             card,
             fg_color=self._status_bg(booking["status"]),
-            corner_radius=6
+            corner_radius=999,
+            border_color=BORDER_LIGHT,
+            border_width=1
         )
         status_frame.grid(row=0, column=1, sticky="e", padx=20, pady=18)
 
         status = ctk.CTkLabel(
             status_frame,
-            text=booking["status"].title(),
+            text=self._display_status(booking["status"]),
             font=ctk.CTkFont(size=11, weight="bold", family="Helvetica"),
             text_color=self._status_color(booking["status"])
         )
-        status.pack(padx=12, pady=6)
+        status.pack(padx=14, pady=6)
 
         # Action buttons based on status
         if booking["status"] in ("pending", "confirmed"):
@@ -288,13 +291,25 @@ class MyBookingsPage(BasePage):
 
         return dt.strftime("%b %d, %Y")
 
+    def _display_status(self, status: str) -> str:
+        """Return the user-facing status label (premium display set)."""
+        display = {
+            "pending": "Rented",
+            "confirmed": "Rented",
+            "active": "Rented",
+            "completed": "Completed",
+            "cancelled": "Cancelled",
+        }
+        return display.get(status, status.title())
+
     def _status_color(self, status: str) -> str:
         """Return status text color."""
         colors = {
+            # Map underlying states into the required display set
             "pending": ACCENT_WARNING,
             "confirmed": ACCENT_SUCCESS,
             "active": PRIMARY,
-            "completed": TEXT_SECONDARY,
+            "completed": TEXT_PRIMARY,
             "cancelled": ACCENT_ERROR,
         }
         return colors.get(status, TEXT_SECONDARY)
@@ -302,11 +317,11 @@ class MyBookingsPage(BasePage):
     def _status_bg(self, status: str) -> str:
         """Return status background color."""
         return {
-            "pending": "#2D2A00",
-            "confirmed": "#0D2A1A",
-            "active": "#1A1A2D",
-            "completed": BG_LIGHT,
-            "cancelled": "#2A0D0D",
+            "pending": "#2D2A00",     # subtle amber/gold
+            "confirmed": "#0D2A1A",  # subtle green
+            "active": "#1A1A2D",     # subtle gold/charcoal
+            "completed": BG_LIGHT,   # neutral premium surface
+            "cancelled": "#2A0D0D",  # subtle red
         }.get(status, BG_LIGHT)
 
     def _cancel_booking(self, booking: Dict):
