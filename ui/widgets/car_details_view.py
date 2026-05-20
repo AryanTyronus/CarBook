@@ -23,7 +23,6 @@ from theme.colors import (
     TEXT_SECONDARY,
     PAGE_PAD_X,
 )
-from ui.widgets import base_frame
 
 
 class CarDetailsView(ctk.CTkFrame):

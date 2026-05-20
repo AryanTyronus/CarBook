@@ -9,7 +9,8 @@ from theme.colors import ACCENT_SUCCESS
 
 from utils.auth import Session
 from ui.pages.base_page import BasePage
-from ui.pages.browse_cars_page import BookingConfirmationDialog, BookingForm
+from ui.forms.booking_form import BookingForm
+from ui.dialogs.booking_confirmation_dialog import BookingConfirmationDialog
 from ui.widgets.car_details_view import CarDetailsView
 
 
